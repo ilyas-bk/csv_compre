@@ -1,6 +1,14 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "python build.py",
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/wsgi.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "15mb"
+      }
+    }
+  ],
   "routes": [
     {
       "src": "/static/(.*)",

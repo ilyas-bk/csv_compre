@@ -8,6 +8,3 @@ dependencies = [
 
 [tool.vercel]
 entrypoint = "api.wsgi:application"
-
-[tool.vercel.scripts]
-build = "python build.py"
