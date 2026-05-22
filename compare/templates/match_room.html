@@ -111,12 +111,50 @@
         </svg>
     </a>
 
-    <div class="mt-6 flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
-        <svg class="h-5 w-5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <div id="waiting-banner" class="mt-6 flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+        <svg id="waiting-spinner" class="h-5 w-5 shrink-0 text-amber-500 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
         </svg>
-        Waiting for Party B to upload their file…
+        <span id="waiting-text">Waiting for Party B to upload their file…</span>
     </div>
 </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if room.is_party_a_uploaded and not room.is_completed %}
+<script>
+(function () {
+    const statusUrl = "{% url 'room_status' room.id %}";
+    let polling = true;
+
+    async function checkStatus() {
+        if (!polling) return;
+        try {
+            const res = await fetch(statusUrl, { credentials: 'same-origin' });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.is_completed) {
+                polling = false;
+                const banner = document.getElementById('waiting-banner');
+                const text = document.getElementById('waiting-text');
+                const spinner = document.getElementById('waiting-spinner');
+                if (banner) {
+                    banner.classList.remove('bg-amber-50', 'border-amber-200', 'text-amber-800');
+                    banner.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-800');
+                }
+                if (spinner) spinner.classList.add('hidden');
+                if (text) text.textContent = 'Party B uploaded — ' + data.match_count + ' match' + (data.match_count === 1 ? '' : 'es') + ' found! Loading results…';
+                showToast('Matching complete! Refreshing…');
+                setTimeout(() => window.location.reload(), 1500);
+            }
+        } catch (_) {}
+    }
+
+    checkStatus();
+    setInterval(checkStatus, 3000);
+})();
+</script>
 {% endif %}
 {% endblock %}

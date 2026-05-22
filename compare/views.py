@@ -4,7 +4,7 @@ import io
 import json
 import secrets
 
-from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
@@ -113,6 +113,20 @@ def upload_and_match_view(request: HttpRequest, room_id) -> HttpResponse:
         context["party_b_invite_url"] = party_b_invite_url(request, room)
 
     return render(request, "match_room.html", context)
+
+
+def room_status(request: HttpRequest, room_id) -> HttpResponse:
+    room_or_response = get_owned_room(request, room_id)
+    if isinstance(room_or_response, HttpResponseForbidden):
+        return room_or_response
+    room = room_or_response
+    return JsonResponse(
+        {
+            "is_completed": room.is_completed,
+            "is_party_a_uploaded": room.is_party_a_uploaded,
+            "match_count": room.match_count,
+        }
+    )
 
 
 def party_b_upload_view(request: HttpRequest, room_id, invite_token: str) -> HttpResponse:

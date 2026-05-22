@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     path("", views.home, name="home"),
     path("room/<uuid:room_id>/", views.upload_and_match_view, name="match_room"),
+    path("room/<uuid:room_id>/status/", views.room_status, name="room_status"),
     path(
         "room/<uuid:room_id>/invite/<str:invite_token>/",
         views.party_b_upload_view,
