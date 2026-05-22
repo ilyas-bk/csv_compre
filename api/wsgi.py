@@ -16,3 +16,4 @@ if os.environ.get("VERCEL"):
     from django.core.management import call_command
 
     call_command("migrate", "--noinput")
+    call_command("collectstatic", "--noinput")
