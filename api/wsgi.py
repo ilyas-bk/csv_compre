@@ -12,8 +12,12 @@ from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 app = application
 
-if os.environ.get("VERCEL"):
-    from django.core.management import call_command
+_vercel_initialized = False
+if os.environ.get("VERCEL") and not _vercel_initialized:
+    try:
+        from django.core.management import call_command
 
-    call_command("migrate", "--noinput")
-    call_command("collectstatic", "--noinput")
+        call_command("migrate", "--noinput")
+        _vercel_initialized = True
+    except Exception:
+        pass
