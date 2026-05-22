@@ -7,13 +7,12 @@ if ROOT not in sys.path:
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
-import django
+from django.core.wsgi import get_wsgi_application
 
-django.setup()
-
-from django.core.management import call_command
+application = get_wsgi_application()
+app = application
 
 if os.environ.get("VERCEL"):
-    call_command("migrate", "--noinput")
+    from django.core.management import call_command
 
-call_command("collectstatic", "--noinput")
+    call_command("migrate", "--noinput")
