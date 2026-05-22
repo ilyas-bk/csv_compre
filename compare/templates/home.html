@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head><title>CSV Compare</title></head>
+<body>
+    <h1>CSV Compare — Match Rooms</h1>
+
+    <h2>Create a new room</h2>
+    <form method="POST">
+        {% csrf_token %}
+        <label for="name">Room name:</label>
+        <input type="text" name="name" id="name" placeholder="e.g. Q1 Partner Match">
+        <button type="submit">Create Room</button>
+    </form>
+
+    {% if rooms %}
+        <h2>Existing rooms</h2>
+        <ul>
+            {% for room in rooms %}
+                <li>
+                    <a href="{% url 'match_room' room.id %}">{{ room.name }}</a>
+                    — {% if room.is_completed %}completed{% elif room.is_party_a_uploaded %}waiting for Party B{% else %}waiting for Party A{% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>

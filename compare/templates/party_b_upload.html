@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head><title>Data Clean Room — Party B</title></head>
+<body>
+    <h1>Upload your file</h1>
+    <p>Room: <strong>{{ room.name }}</strong></p>
+
+    {% if error %}
+        <p style="color: red; font-weight: bold;">{{ error }}</p>
+    {% endif %}
+
+    {% if message %}
+        <p style="color: blue; font-weight: bold;">{{ message }}</p>
+    {% endif %}
+
+    {% if room.is_completed %}
+        <h2>Results</h2>
+        <p>Total common elements: <strong>{{ room.match_count }}</strong></p>
+        <p><a href="{% url 'download_results' room.id %}">Download matched data (CSV)</a></p>
+    {% elif not error %}
+        <p>Upload your CSV file to find records in common with Party A.</p>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" name="csv_file" accept=".csv" required>
+            <button type="submit">Upload and match</button>
+        </form>
+    {% endif %}
+</body>
+</html>
