@@ -13,6 +13,7 @@ class MatchRoom(models.Model):
     name = models.CharField(max_length=100)
     secret_salt = models.CharField(max_length=64, default="mvp_default_salt_123")
     invite_token = models.CharField(max_length=64, default=generate_invite_token, editable=False)
+    owner_key = models.CharField(max_length=64, db_index=True, default="")
     party_a_hashes = models.TextField(blank=True, default="")
     party_a_lookup = models.TextField(blank=True, default="")
     matched_results = models.TextField(blank=True, default="")

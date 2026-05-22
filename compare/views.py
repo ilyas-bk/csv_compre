@@ -4,11 +4,12 @@ import io
 import json
 import secrets
 
-from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from .models import MatchRoom
+from .owner import attach_owner_cookie, is_room_owner, resolve_owner_key, set_owner_cookie
 
 
 def parse_csv_file(file_obj, salt: str) -> dict[str, str]:
@@ -60,19 +61,35 @@ def complete_match(room: MatchRoom, party_b_lookup: dict[str, str]) -> None:
     room.save()
 
 
+def get_owned_room(request: HttpRequest, room_id) -> MatchRoom | HttpResponseForbidden:
+    room = get_object_or_404(MatchRoom, id=room_id)
+    if not is_room_owner(request, room):
+        return HttpResponseForbidden("You do not have access to this room.")
+    return room
+
+
 def home(request: HttpRequest) -> HttpResponse:
+    owner_key, is_new_owner = resolve_owner_key(request)
+
     if request.method == "POST":
         name = request.POST.get("name", "").strip() or "Untitled Room"
         salt = secrets.token_hex(32)
-        room = MatchRoom.objects.create(name=name, secret_salt=salt)
-        return redirect("match_room", room_id=room.id)
+        room = MatchRoom.objects.create(name=name, secret_salt=salt, owner_key=owner_key)
+        response = redirect("match_room", room_id=room.id)
+        if is_new_owner:
+            set_owner_cookie(response, owner_key)
+        return response
 
-    rooms = MatchRoom.objects.order_by("-id")
-    return render(request, "home.html", {"rooms": rooms})
+    rooms = MatchRoom.objects.filter(owner_key=owner_key).order_by("-id")
+    response = render(request, "home.html", {"rooms": rooms})
+    return attach_owner_cookie(request, response)
 
 
 def upload_and_match_view(request: HttpRequest, room_id) -> HttpResponse:
-    room = get_object_or_404(MatchRoom, id=room_id)
+    room_or_response = get_owned_room(request, room_id)
+    if isinstance(room_or_response, HttpResponseForbidden):
+        return room_or_response
+    room = room_or_response
     context: dict = {"room": room}
 
     if room.is_completed:
@@ -118,12 +135,27 @@ def party_b_upload_view(request: HttpRequest, room_id, invite_token: str) -> Htt
     return render(request, "party_b_upload.html", context)
 
 
+def build_download_response(room: MatchRoom) -> HttpResponse:
+    filename = f"{room.name.replace(' ', '_')}_matches.csv"
+    response = HttpResponse(room.matched_results, content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
 def download_results(request: HttpRequest, room_id) -> HttpResponse:
     room = get_object_or_404(MatchRoom, id=room_id)
     if not room.is_completed or not room.matched_results:
         return HttpResponseBadRequest("No results available.")
 
-    filename = f"{room.name.replace(' ', '_')}_matches.csv"
-    response = HttpResponse(room.matched_results, content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    return response
+    if not is_room_owner(request, room):
+        return HttpResponseForbidden("You do not have access to this room.")
+
+    return build_download_response(room)
+
+
+def download_results_party_b(request: HttpRequest, room_id, invite_token: str) -> HttpResponse:
+    room = get_object_or_404(MatchRoom, id=room_id, invite_token=invite_token)
+    if not room.is_completed or not room.matched_results:
+        return HttpResponseBadRequest("No results available.")
+
+    return build_download_response(room)

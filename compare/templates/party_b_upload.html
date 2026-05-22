@@ -16,7 +16,7 @@
     {% if room.is_completed %}
         <h2>Results</h2>
         <p>Total common elements: <strong>{{ room.match_count }}</strong></p>
-        <p><a href="{% url 'download_results' room.id %}">Download matched data (CSV)</a></p>
+        <p><a href="{% url 'download_results_party_b' room.id room.invite_token %}">Download matched data (CSV)</a></p>
     {% elif not error %}
         <p>Upload your CSV file to find records in common with Party A.</p>
         <form method="POST" enctype="multipart/form-data">
